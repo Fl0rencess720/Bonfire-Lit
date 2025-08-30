@@ -3,7 +3,7 @@ name: Bonfire-Lit-CI
 on:
   push:
     branches:
-      - main 
+      - ci
 
 jobs:
   detect-changes:
