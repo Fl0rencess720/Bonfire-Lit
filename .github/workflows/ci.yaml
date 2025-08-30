@@ -49,23 +49,39 @@ jobs:
       - name: Generate build matrix
         id: matrix-generator
         run: |
+          # 定义获取所有服务列表的命令，确保输出为紧凑的单行JSON数组
+          GET_ALL_SERVICES_JSON_COMMAND='(echo "gateway"; ls -1 src/services) | jq -R . | jq -cs .'
           # 优先级最高：如果 workflow 文件有变动，则重新构建所有服务
           if [[ "${{ steps.changed-workflow.outputs.any_changed }}" == "true" ]]; then
             echo "✅ Workflow files changed. Rebuilding all services."
-            ALL_SERVICES=$( (echo "gateway"; ls -1 src/services) | jq -R . | jq -s . )
+            ALL_SERVICES=$(eval "$GET_ALL_SERVICES_JSON_COMMAND") # 使用eval执行命令
             echo "services-matrix=${ALL_SERVICES}" >> $GITHUB_OUTPUT
             echo "has-changes=true" >> $GITHUB_OUTPUT
           # 其次：如果公共模块有变动，则重新构建所有服务
           elif [[ "${{ steps.changed-common.outputs.any_changed }}" == "true" ]]; then
             echo "✅ Common modules changed. Rebuilding all services."
-            ALL_SERVICES=$( (echo "gateway"; ls -1 src/services) | jq -R . | jq -s . )
+            ALL_SERVICES=$(eval "$GET_ALL_SERVICES_JSON_COMMAND") # 使用eval执行命令
             echo "services-matrix=${ALL_SERVICES}" >> $GITHUB_OUTPUT
             echo "has-changes=true" >> $GITHUB_OUTPUT
           # 最后：如果特定服务目录有变动，只构建对应的服务
           elif [[ "${{ steps.changed-services.outputs.any_changed }}" == "true" ]]; then
             echo "✅ Specific services changed."
-            CHANGED_SERVICE_NAMES=$(echo "${{ steps.changed-services.outputs.all_changed_files }}" | sed 's|[^ ]*/||g')
-            JSON_MATRIX=$(echo "[\"${CHANGED_SERVICE_NAMES// /\",\"}\"]")
+            # 注意：此处 CHANGED_SERVICE_NAMES 已经是空格分隔的字符串
+            # 需要将其转换为正确的JSON数组格式，例如 ["gateway","chat"]
+            CHANGED_SERVICE_NAMES_RAW=$(echo "${{ steps.changed-services.outputs.all_changed_files }}" | sed 's|[^ ]*/||g')
+            
+            # 使用 jq 将空格分隔的字符串转换为 JSON 数组
+            # 1. 替换空格为换行符
+            # 2. 管道给 jq -R . 将每行转换为带引号的字符串
+            # 3. 管道给 jq -cs . 将所有字符串组合成紧凑的JSON数组
+            JSON_MATRIX=$(echo "$CHANGED_SERVICE_NAMES_RAW" | tr ' ' '\n' | jq -R . | jq -cs .)
+            
+            # 如果 changed-services.outputs.all_changed_files 是空的，则 JSON_MATRIX 可能是 [""] 或 []
+            # 我们要确保它不包含空字符串项
+            if [ -z "$CHANGED_SERVICE_NAMES_RAW" ]; then
+              JSON_MATRIX="[]"
+            fi
+            
             echo "services-matrix=${JSON_MATRIX}" >> $GITHUB_OUTPUT
             echo "has-changes=true" >> $GITHUB_OUTPUT
           # 否则：无变化
