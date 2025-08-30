@@ -17,7 +17,6 @@ help:
 	@echo "  gateway   - Run gateway service"
 	@echo "  image     - Run image service"
 	@echo "  chat     - Run chat service"
-	@echo ""
 	@echo "Examples:"
 	@echo "  make run gateway"
 	@echo "  make run image"
@@ -32,3 +31,5 @@ image:
 
 chat:
 	@go run src/services/chat/cmd/main.go src/services/chat/cmd/wire_gen.go --config src/services/chat/configs
+
+build:
