@@ -87,7 +87,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: . 
-          file: ./src/${{ matrix.service == 'gateway' && 'gateway' || 'services/' + matrix.service }}/Dockerfile
+          file: ${{ matrix.service == 'gateway' && './src/gateway/Dockerfile' || format('./src/services/{0}/Dockerfile', matrix.service) }}
           push: true
           tags: ${{ secrets.DOCKERHUB_REGISTRY }}/bonfirelit/${{ matrix.service }}:${{ github.sha }}
 
