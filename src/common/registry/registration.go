@@ -64,3 +64,5 @@ func (nr *NoOpRegistrar) DeregisterService(serviceID string) error {
 		zap.String("service_id", serviceID))
 	return nil
 }
+
+// test
